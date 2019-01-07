@@ -16,6 +16,7 @@ AARCH64_TOOLCHAIN_VERSION := 4.9
 ARCHES := x86_64 arm aarch64 i386 ppc64le s390x
 
 OMRDIR := $(shell readlink -f ..)
+THIS_DIR := $(shell readlink -f .)
 UID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 USER_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
@@ -155,10 +156,10 @@ depends_build:
 cross_build: depends_build toolchains/gcc-$(BUILD_ARCH)
 	mkdir -p $(OMRDIR)/$(CROSS_BUILD); \
 	cd $(OMRDIR)/$(CROSS_BUILD); \
-	export PATH=$(OMRDIR)/buildenv/toolchains/gcc-$(BUILD_ARCH)/bin:$(PATH); \
+	export PATH=$(THIS_DIR)/toolchains/gcc-$(BUILD_ARCH)/bin:$(PATH); \
 	cmake \
 		-GNinja \
-		-DCMAKE_TOOLCHAIN_FILE=$(OMRDIR)/buildenv/toolchains/$(BUILD_ARCH).cmake \
+		-DCMAKE_TOOLCHAIN_FILE=$(THIS_DIR)/toolchains/$(BUILD_ARCH).cmake \
 		-DOMR_TOOLS_IMPORTFILE=$(OMRDIR)/$(DEPENDENCY_BUILD)/tools/ImportTools.cmake \
 		$(OMRDIR); \
 	ninja
