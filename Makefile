@@ -5,7 +5,19 @@ GCC_V ?= "4.9"
 HOST := $(shell uname -m)
 TARGET ?= $(HOST)
 
+WITH_DOCKER ?= false
 OMRDIR ?= $(shell readlink -f ..)
+
+######################
+# to switch between build type
+DOCKER_BUILD := docker
+LOCAL_BUILD := native
+
+ifeq ($(WITH_DOCKER),true)
+  BUILD_ENV := $(DOCKER_BUILD)
+else
+  BUILD_ENV := $(LOCAL_BUILD)
+endif
 
 #######################
 # this is for building the binaries
@@ -31,7 +43,7 @@ GID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 USER_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GROUP_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 
-.PHONY: help clean build $(DEPENDENCY_BUILD) $(CROSS_BUILD) $(NATIVE_BUILD) run docker_build docker_cross_build docker_attach get_toolchain
+.PHONY: help clean build docker_$(DEPENDENCY_BUILD) docker_$(CROSS_BUILD) docker_$(NATIVE_BUILD) $(DEPENDENCY_BUILD) $(CROSS_BUILD) $(NATIVE_BUILD) run docker_run get_toolchain
 
 help:
 	@echo -e "\n\
@@ -121,39 +133,36 @@ $(ARCHES): docker_static_bin
 
 all: $(ARCHES)
 
-docker_build: $(TARGET)
+build: $(BUILD_ENV)_$(BUILD_TYPE)
+
+######################
+# using docker build environement
+$(DOCKER_BUILD)_$(NATIVE_BUILD): $(TARGET)
 	docker run -it \
 		--privileged \
 		-v /home/$(USER_IN):/home/$(USER_IN) \
 		-v $(OMRDIR):$(OMRDIR) \
+		-v /etc/passwd:/etc/passwd \
 		-e OMRDIR=$(OMRDIR) \
-		-e INIT_ARGS=build \
+		-e INIT_ARGS="make $(LOCAL_BUILD)_$(NATIVE_BUILD); cd $(OMRDIR)/$(NATIVE_BUILD)" \
 		$(OWNER)/$(TARGET)
 
-docker_cross_build: $(HOST)
+$(DOCKER_BUILD)_$(CROSS_BUILD): $(HOST)
 	docker run -it \
 		--privileged \
 		-v /home/$(USER_IN):/home/$(USER_IN) \
 		-v $(OMRDIR):$(OMRDIR) \
+		-v /etc/passwd:/etc/passwd \
 		-e OMRDIR=$(OMRDIR) \
-		-e INIT_ARGS="cross_build TARGET=$(TARGET)" \
-		$(OWNER)/$(HOST)
+		$(OWNER)/$(HOST) \
+		/bin/bash -c 'cd $(THIS_DIR) && make $(LOCAL_BUILD)_$(CROSS_BUILD) TARGET=$(TARGET)'
 
-docker_attach: $(TARGET)
-	docker run -it \
-		--privileged \
-		-v /home/$(USER_IN):/home/$(USER_IN) \
-		-v $(OMRDIR):$(OMRDIR) \
-		-e OMRDIR=$(OMRDIR) \
-		-e INIT_ARGS=run \
-		$(OWNER)/$(TARGET)
-	
+# attach to other container for cross build
+	$(MAKE) run_$(CROSS_BUILD)
 
-#################
-# for building the binary
-build: $(BUILD_TYPE)
-
-$(NATIVE_BUILD):
+######################
+# using local build environement
+$(LOCAL_BUILD)_$(NATIVE_BUILD):
 	mkdir -p $(OMRDIR)/$(NATIVE_BUILD); \
 	cd $(OMRDIR)/$(NATIVE_BUILD); \
 	cmake \
@@ -162,7 +171,7 @@ $(NATIVE_BUILD):
 		$(OMRDIR); \
 	ninja
 
-$(DEPENDENCY_BUILD):
+$(LOCAL_BUILD)_$(DEPENDENCY_BUILD):
 	mkdir -p $(OMRDIR)/$(DEPENDENCY_BUILD); \
 	cd $(OMRDIR)/$(DEPENDENCY_BUILD); \
 	cmake \
@@ -170,7 +179,7 @@ $(DEPENDENCY_BUILD):
 		$(OMRDIR); \
 	ninja
 
-$(CROSS_BUILD): $(DEPENDENCY_BUILD) toolchains/gcc-$(TARGET)
+$(LOCAL_BUILD)_$(CROSS_BUILD): $(DEPENDENCY_BUILD) toolchains/gcc-$(TARGET)
 	mkdir -p $(OMRDIR)/$(CROSS_BUILD); \
 	cd $(OMRDIR)/$(CROSS_BUILD); \
 	export PATH=$(THIS_DIR)/toolchains/gcc-$(TARGET)/bin:$(PATH); \
@@ -180,7 +189,20 @@ $(CROSS_BUILD): $(DEPENDENCY_BUILD) toolchains/gcc-$(TARGET)
 		-DOMR_TOOLS_IMPORTFILE=$(OMRDIR)/$(DEPENDENCY_BUILD)/tools/ImportTools.cmake \
 		-C$(THIS_DIR)/compile_target.cmake \
 		$(OMRDIR); \
-	ninja
+	ninja 
+
+
+############################
+# runners 
+run_$(CROSS_BUILD): $(TARGET)
+	docker run -it \
+		--privileged \
+		-v /home/$(USER_IN):/home/$(USER_IN) \
+		-v /etc/passwd:/etc/passwd \
+		-v $(OMRDIR):$(OMRDIR) \
+		-e OMRDIR=$(OMRDIR) \
+		-e INIT_ARGS="make run && cd $(OMRDIR)/$(CROSS_BUILD)" \
+		$(OWNER)/$(TARGET)
 
 run:
 	@echo "This is a place holder function, exiting from makefile"

@@ -1,0 +1,6 @@
+*
+!.git*
+!*.template
+!Makefile
+!compile_target.cmake
+!*.md
