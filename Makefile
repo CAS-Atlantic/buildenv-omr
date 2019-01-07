@@ -184,7 +184,7 @@ run:
 	@echo "This is a place holder function, exiting from makefile"
 
 patch_aarch64:
-	cd .. && git-apply $(THIS_DIR)/aarch64_cmake.patch
+	cd .. && git apply $(THIS_DIR)/aarch64_cmake.patch
 
 
 
