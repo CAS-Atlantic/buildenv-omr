@@ -1,0 +1,58 @@
+###############################################################################
+# Copyright (c) 2018, 2018 IBM Corp. and others
+#
+# This program and the accompanying materials are made available under
+# the terms of the Eclipse Public License 2.0 which accompanies this
+# distribution and is available at http://eclipse.org/legal/epl-2.0
+# or the Apache License, Version 2.0 which accompanies this distribution
+# and is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# This Source Code may also be made available under the following Secondary
+# Licenses when the conditions for such availability set forth in the
+# Eclipse Public License, v. 2.0 are satisfied: GNU General Public License,
+# version 2 with the GNU Classpath Exception [1] and GNU General Public
+# License, version 2 with the OpenJDK Assembly Exception [2].
+#
+# [1] https://www.gnu.org/software/classpath/license.html
+# [2] http://openjdk.java.net/legal/assembly-exception.html
+#
+# SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-exception-2.0 OR LicenseRef-GPL-2.0 WITH Assembly-exception
+#############################################################################
+
+SET(CMAKE_SYSTEM_PROCESSOR THIS_TARGET_ARCH)
+SET(CMAKE_SYSTEM_NAME Linux)
+SET(triple THIS_TARGET_ARCH-linux-gnu)
+
+# check platform
+if(MINGW OR CYGWIN OR WIN32)
+    set(WHICH_CMD where)
+elseif(UNIX OR APPLE)
+    set(WHICH_CMD which)
+endif()
+
+execute_process(
+        COMMAND ${WHICH_CMD} ${triple}-gcc
+        OUTPUT_VARIABLE CC_PATH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+get_filename_component(TOOLCHAIN ${CC_PATH} DIRECTORY)
+
+# omr_assert(FATAL_ERROR TEST CC_PATH MESSAGE "Could not find the aarch64 gcc cross compiler in your PATH, did you export it to your PATH environment variable")
+
+SET(CMAKE_FIND_ROOT_PATH ${TOOLCHAIN})
+INCLUDE_DIRECTORIES(${TOOLCHAIN}/../${triple}/include)
+
+SET(CMAKE_C_COMPILER ${triple}-gcc)
+SET(CMAKE_CXX_COMPILER ${triple}-g++)
+SET(CMAKE_CPP ${triple}-cpp)
+SET(CMAKE_LD ${triple}-ld)
+SET(CMAKE_ASM_COMPILER ${triple}-as)
+SET(CMAKE_AR ${triple}-ar)
+SET(CMAKE_OBJCOPY ${triple}-objcopy)
+SET(CMAKE_OBJDUMP ${triple}-objdump)
+
+SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
