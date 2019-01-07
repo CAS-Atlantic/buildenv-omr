@@ -45,6 +45,7 @@ help:
 			all					To build all the architecture
 			clean				delete everything in here
 			fresh				delete built binaries
+			patch_aarch64		this patches aarch64 to build only jitbuilder
 	\n\
 	"
 
@@ -181,6 +182,9 @@ $(CROSS_BUILD): $(DEPENDENCY_BUILD) toolchains/gcc-$(TARGET)
 
 run:
 	@echo "This is a place holder function, exiting from makefile"
+
+patch_aarch64:
+	cd .. && git-apply $(THIS_DIR)/aarch64_cmake.patch
 
 
 
