@@ -1,13 +1,23 @@
 OWNER ?= omr_builder
 UBUNTU_V ?= "16.04"
-BUILD_ARCH ?= "UNDEF"
 GCC_V ?= "4.9"
+
+HOST := $(shell uname -m)
+TARGET ?= $(HOST)
+
+OMRDIR ?= $(shell readlink -f ..)
 
 #######################
 # this is for building the binaries
 DEPENDENCY_BUILD ?= build_dependency
 CROSS_BUILD ?= cross_build
-BUILD ?= build
+NATIVE_BUILD ?= native_build
+
+ifeq ($(TARGET),$(HOST))
+  BUILD_TYPE := $(NATIVE_BUILD)
+else
+  BUILD_TYPE := $(CROSS_BUILD)
+endif
 
 #######################
 # this is for the toolchain try to match gcc_v with version
@@ -15,32 +25,35 @@ AARCH64_TOOLCHAIN_VERSION := 4.9
 
 ARCHES := x86_64 arm aarch64 i386 ppc64le s390x
 
-OMRDIR := $(shell readlink -f ..)
 THIS_DIR := $(shell readlink -f .)
 UID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 USER_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GROUP_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
-MY_ARCH := $(shell uname -m)
 
-.PHONY: help clean build cross_build run docker_build docker_cross_build docker_attach get_toolchain
+.PHONY: help clean build $(DEPENDENCY_BUILD) $(CROSS_BUILD) $(NATIVE_BUILD) run docker_build docker_cross_build docker_attach get_toolchain
 
 help:
 	@echo -e "\n\
 	Usage:\n\
-		run [ $(ARCHES) ]	To run one of the Docker container for this architecture
-		$(ARCHES)			To build one of the Docker container for this architecture
-		clean				delete everything in here
+		FLAGS:
+			TARGET="target architecture" allows you to change the target architecture to build to 
+
+		CMD:
+			build
+			$(ARCHES)			To build one of the Docker container for this architecture
+			all					To build all the architecture
+			clean				delete everything in here
+			fresh				delete built binaries
 	\n\
 	"
 
 fresh:
 	rm -Rf $(OMRDIR)/$(DEPENDENCY_BUILD)
 	rm -Rf $(OMRDIR)/$(CROSS_BUILD)
-	rm -Rf $(OMRDIR)/$(BUILD)
+	rm -Rf $(OMRDIR)/$(NATIVE_BUILD)
 
 clean: fresh
-	ls | grep -v .template | grep -v Makefile | xargs rm -Rf
 	git clean -dxf
 
 toolchains:
@@ -96,7 +109,7 @@ $(ARCHES): docker_static_bin
 	sed -i "s/THIS_USER/$(USER_IN)/g"  $@.Dockerfile
 	sed -i "s/THIS_UID/$(UID_IN)/g"  $@.Dockerfile
 
-	[ "$@" == "$(MY_ARCH)" ] \
+	[ "$@" == "$(HOST)" ] \
 	&&	sed -i "/THIS_QEMU_ARCH/d" $@.Dockerfile \
 	||	sed -i "s/THIS_QEMU_ARCH/docker_static_bin\/qemu-$@-static/g" $@.Dockerfile;
 
@@ -107,45 +120,47 @@ $(ARCHES): docker_static_bin
 
 all: $(ARCHES)
 
-docker_build: $(BUILD_ARCH)
+docker_build: $(TARGET)
 	docker run -it \
 		--privileged \
 		-v /home/$(USER_IN):/home/$(USER_IN) \
 		-v $(OMRDIR):$(OMRDIR) \
 		-e OMRDIR=$(OMRDIR) \
 		-e INIT_ARGS=build \
-		$(OWNER)/$(BUILD_ARCH)
+		$(OWNER)/$(TARGET)
 
-docker_cross_build: $(MY_ARCH)
+docker_cross_build: $(HOST)
 	docker run -it \
 		--privileged \
 		-v /home/$(USER_IN):/home/$(USER_IN) \
 		-v $(OMRDIR):$(OMRDIR) \
 		-e OMRDIR=$(OMRDIR) \
-		-e INIT_ARGS="cross_build BUILD_ARCH=$(BUILD_ARCH)" \
-		$(OWNER)/$(MY_ARCH)
+		-e INIT_ARGS="cross_build TARGET=$(TARGET)" \
+		$(OWNER)/$(HOST)
 
-docker_attach: $(BUILD_ARCH)
+docker_attach: $(TARGET)
 	docker run -it \
 		--privileged \
 		-v /home/$(USER_IN):/home/$(USER_IN) \
 		-v $(OMRDIR):$(OMRDIR) \
 		-e OMRDIR=$(OMRDIR) \
 		-e INIT_ARGS=run \
-		$(OWNER)/$(BUILD_ARCH)
+		$(OWNER)/$(TARGET)
 	
 
 #################
 # for building the binary
-build:
-	mkdir -p $(OMRDIR)/$(BUILD); \
-	cd $(OMRDIR)/$(BUILD); \
+build: $(BUILD_TYPE)
+
+$(NATIVE_BUILD):
+	mkdir -p $(OMRDIR)/$(NATIVE_BUILD); \
+	cd $(OMRDIR)/$(NATIVE_BUILD); \
 	cmake \
 		-GNinja \
 		$(OMRDIR); \
 	ninja
 
-depends_build:
+$(DEPENDENCY_BUILD):
 	mkdir -p $(OMRDIR)/$(DEPENDENCY_BUILD); \
 	cd $(OMRDIR)/$(DEPENDENCY_BUILD); \
 	cmake \
@@ -153,13 +168,13 @@ depends_build:
 		$(OMRDIR); \
 	ninja
 
-cross_build: depends_build toolchains/gcc-$(BUILD_ARCH)
+$(CROSS_BUILD): $(DEPENDENCY_BUILD) toolchains/gcc-$(TARGET)
 	mkdir -p $(OMRDIR)/$(CROSS_BUILD); \
 	cd $(OMRDIR)/$(CROSS_BUILD); \
-	export PATH=$(THIS_DIR)/toolchains/gcc-$(BUILD_ARCH)/bin:$(PATH); \
+	export PATH=$(THIS_DIR)/toolchains/gcc-$(TARGET)/bin:$(PATH); \
 	cmake \
 		-GNinja \
-		-DCMAKE_TOOLCHAIN_FILE=$(THIS_DIR)/toolchains/$(BUILD_ARCH).cmake \
+		-DCMAKE_TOOLCHAIN_FILE=$(THIS_DIR)/toolchains/$(TARGET).cmake \
 		-DOMR_TOOLS_IMPORTFILE=$(OMRDIR)/$(DEPENDENCY_BUILD)/tools/ImportTools.cmake \
 		$(OMRDIR); \
 	ninja
