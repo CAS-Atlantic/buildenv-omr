@@ -9,6 +9,10 @@ do
 done
 echo ${PATH}
 
-exit (cmake -GNinja -Wdev "$@" && ninja -v)
+if [ "_$(which ninja | grep -v "not found")" != "_" ]; then
+    exit (cmake -GNinja -Wdev "$@" && ninja -v)
+else
+    exit (cmake -Wdev "$@" && cmake --build .)
+fi
 
 
