@@ -9,9 +9,9 @@ OMRDIR ?= $(shell readlink -f ..)
 
 #######################
 # this is for building the binaries
-DEPENDENCY_BUILD ?= build_dependency
-CROSS_BUILD ?= cross_build
-NATIVE_BUILD ?= native_build
+DEPENDENCY_BUILD ?= build/build_dependency
+CROSS_BUILD ?= build/cross_build
+NATIVE_BUILD ?= build/native_build
 
 ifeq ($(TARGET),$(HOST))
   BUILD_TYPE := $(NATIVE_BUILD)
@@ -158,6 +158,7 @@ $(NATIVE_BUILD):
 	cd $(OMRDIR)/$(NATIVE_BUILD); \
 	cmake \
 		-GNinja \
+		-C$(THIS_DIR)/compile_target.cmake \
 		$(OMRDIR); \
 	ninja
 
@@ -177,14 +178,12 @@ $(CROSS_BUILD): $(DEPENDENCY_BUILD) toolchains/gcc-$(TARGET)
 		-GNinja \
 		-DCMAKE_TOOLCHAIN_FILE=$(THIS_DIR)/toolchains/$(TARGET).cmake \
 		-DOMR_TOOLS_IMPORTFILE=$(OMRDIR)/$(DEPENDENCY_BUILD)/tools/ImportTools.cmake \
+		-C$(THIS_DIR)/compile_target.cmake \
 		$(OMRDIR); \
 	ninja
 
 run:
 	@echo "This is a place holder function, exiting from makefile"
-
-patch_aarch64:
-	cd .. && git apply $(THIS_DIR)/aarch64_cmake.patch
 
 
 
