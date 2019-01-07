@@ -4,3 +4,4 @@
 !Makefile
 !compile_target.cmake
 !*.md
+!buildOMR.sh

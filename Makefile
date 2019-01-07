@@ -78,12 +78,15 @@ AARCH64_TC_TAR_EXT := tar.xz
 AARCH64_UNTAR_CMD := xJ
 AARCH64_TC := gcc-linaro-$(AARCH64_TOOLCHAIN_VERSION).4-2017.01-x86_64_aarch64-linux-gnu
 AARCH64_TC_URL := https://releases.linaro.org/components/toolchain/binaries/$(AARCH64_TOOLCHAIN_VERSION)-2017.01/aarch64-linux-gnu/$(AARCH64_TC).$(AARCH64_TC_TAR_EXT)
-
 toolchains/gcc-aarch64: toolchains
 	# build toolchain dependencies
 	wget $(AARCH64_TC_URL) -qO- | tar -C toolchains -$(AARCH64_UNTAR_CMD) \
 	&& mv toolchains/$(AARCH64_TC) toolchains/gcc-aarch64 \
 	&& sed "s/THIS_TARGET_ARCH/aarch64/" cmake.template > toolchains/aarch64.cmake
+
+toolchains/set_path:
+	@for tc in $(THIS_DIR)/toolchains/gcc-*; do export PATH="$${tc}/bin:$${PATH}" && echo $${tc} to PATH; done; echo $${PATH}
+	
 
 docker_static_bin:
 	@echo "Registering qemu user static"
@@ -165,32 +168,26 @@ $(DOCKER_BUILD)_$(CROSS_BUILD): $(HOST)
 $(LOCAL_BUILD)_$(NATIVE_BUILD):
 	mkdir -p $(OMRDIR)/$(NATIVE_BUILD); \
 	cd $(OMRDIR)/$(NATIVE_BUILD); \
-	cmake \
-		-GNinja \
+	buildOMR.sh \
 		-C$(THIS_DIR)/compile_target.cmake \
-		$(OMRDIR); \
-	ninja
+		$(OMRDIR)
 
-$(LOCAL_BUILD)_$(DEPENDENCY_BUILD):
+$(DEPENDENCY_BUILD):
 	mkdir -p $(OMRDIR)/$(DEPENDENCY_BUILD); \
 	cd $(OMRDIR)/$(DEPENDENCY_BUILD); \
-	cmake \
-		-GNinja \
-		$(OMRDIR); \
-	ninja
+	buildOMR.sh \
+		$(OMRDIR)
 
-$(LOCAL_BUILD)_$(CROSS_BUILD): $(DEPENDENCY_BUILD) toolchains/gcc-$(TARGET)
+$(LOCAL_BUILD)_$(CROSS_BUILD): $(DEPENDENCY_BUILD) toolchains/gcc-$(TARGET) toolchains/set_path
 	mkdir -p $(OMRDIR)/$(CROSS_BUILD); \
 	cd $(OMRDIR)/$(CROSS_BUILD); \
-	export PATH=$(THIS_DIR)/toolchains/gcc-$(TARGET)/bin:$(PATH); \
-	cmake \
-		-GNinja \
+	buildOMR.sh \
 		-DCMAKE_TOOLCHAIN_FILE=$(THIS_DIR)/toolchains/$(TARGET).cmake \
 		-DOMR_TOOLS_IMPORTFILE=$(OMRDIR)/$(DEPENDENCY_BUILD)/tools/ImportTools.cmake \
 		-C$(THIS_DIR)/compile_target.cmake \
-		$(OMRDIR); \
-	ninja 
-
+		$(OMRDIR)
+# attach to other container for cross build
+	$(MAKE) run_$(CROSS_BUILD)
 
 ############################
 # runners 
