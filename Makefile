@@ -117,7 +117,7 @@ $(ARCHES): docker_static_bin
 
 	[ "$@" == "$(HOST)" ] \
 	&&	sed -i "/THIS_QEMU_ARCH/d" $@.Dockerfile \
-	||	sed -i "s/THIS_QEMU_ARCH/docker_static_bin\/qemu-$@-static/g" $@.Dockerfile;
+	||	sed -i "s/THIS_QEMU_ARCH/$@/g" $@.Dockerfile;
 
 	docker build \
 		-t $(OWNER)/$@ \
