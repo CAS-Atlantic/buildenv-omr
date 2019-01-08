@@ -8,6 +8,7 @@ TARGET_ARCH ?= $(HOST)
 THIS_DIR := $(shell readlink -f $${PWD} )
 OMRDIR ?= $(shell cd .. && readlink -f $${PWD} )
 HOMES_DIR ?= $(shell readlink -f ~/ )
+ESCAPED_HOMES := $(shell echo $(HOMES_DIR) | sed 's/\//\\\\\//g')
 
 ifeq ($(TARGET_ARCH),$(HOST))
   BUILD_TYPE := native
@@ -26,6 +27,9 @@ GROUP_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 MOUNT_TYPE := shared
 
 .PHONY: help clean build build_native build_cross docker_native docker_cross run docker_run toolchains/gcc-$(TARGET_ARCH) the_docs
+
+try_it:
+	@echo $(ESCAPED_HOMES)
 
 help:
 	@echo -e "\
@@ -79,7 +83,7 @@ help:
 "
 
 fresh:
-	rm -Rf $(OMRDIR)/$(BUILD_ROOT_DIR)
+	rm -Rf $(OMRDIR)/build
 
 clean: fresh
 	git clean -dxf -e toolchains
@@ -126,15 +130,14 @@ ppc64le.Dockerfile: Dockerfile.template
 	sed "s/THIS_DOCKER_ARCH/ppc64le/" Dockerfile.template > $@
 
 # Build the docker environment
-$(ARCHES): docker_static_bin
-	$(MAKE) $@.Dockerfile
+%: %.Dockerfile docker_static_bin
 	sed -i "s/THIS_UBUNTU_V/$(UBUNTU_V)/g" $@.Dockerfile
 	sed -i "s/THIS_GCC_VERSION/$(GCC_V)/g" $@.Dockerfile
 	sed -i "s/THIS_GROUP/$(GROUP_IN)/g"  $@.Dockerfile
 	sed -i "s/THIS_GID/$(GID_IN)/g"  $@.Dockerfile
 	sed -i "s/THIS_USER/$(USER_IN)/g"  $@.Dockerfile
 	sed -i "s/THIS_UID/$(UID_IN)/g"  $@.Dockerfile
-	sed -i "s/THIS_HOMES/$(HOMES_DIR)/g"  $@.Dockerfile
+	sed -i "s/THIS_HOMES/$(ESCAPED_HOMES)/g"  $@.Dockerfile
 
 	case $@ in \
 		$(HOST)) 	sed -i "/THIS_QEMU_ARCH/d" $@.Dockerfile ;;\
@@ -217,7 +220,7 @@ build_cross: build_cross_no_run
 
 run:
 	@echo "----------------------------"
-	@echo "This is a place holder function your builds are located at $(OMRDIR)/$(BUILD_ROOT_DIR)"
+	@echo "This is a place holder function your builds are located at $(OMRDIR)/build"
 	@echo "----------------------------"
 	@echo "-------exiting from makefile"
 

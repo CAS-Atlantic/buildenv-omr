@@ -74,7 +74,6 @@ RUN rm -rf /var/lib/apt/lists/*
 
 ENV OMRDIR /omr
 ENV BUILDER_DIR /omr/builder-omr
-ENV BUILD_ROOT_DIR /omr/build
 ENV TARGET_ARCH THIS_QEMU_ARCH
 ENV MAKE_CMD run
 
@@ -83,14 +82,21 @@ cd \${BUILDER_DIR} \n\
 make \
 	\${MAKE_CMD} \
 	OMRDIR=\${OMRDIR} \
-	BUILD_ROOT_DIR=\${BUILD_ROOT_DIR} \
 	TARGET_ARCH=\${TARGET_ARCH} \n\
 cd \${OMRDIR}/build \n\
 " > /init_script.sh && chmod +x /init_script.sh
 
 RUN groupadd THIS_GROUP || /bin/true
 RUN groupmod -g THIS_GID THIS_GROUP
-RUN useradd -u THIS_UID -g THIS_GID -G THIS_GROUP -m -s /bin/bash -d THIS_HOMES THIS_USER
+RUN useradd \
+		-u THIS_UID \
+		-g THIS_GID \
+		-G THIS_GROUP \
+		-m \
+		-s /bin/bash \
+		-d THIS_HOMES \
+		THIS_USER
+
 USER THIS_USER
 
 CMD [ "/bin/bash", "--init-file", "/init_script.sh" ]
