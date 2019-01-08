@@ -5,15 +5,20 @@ help_me () {
 EXIT_CODE=$1
 shift
 echo "$@
-Usage:
-    $0 [cmake extra args] ... 
-    Necessary Variables:
-        SOURCE=\"path/to/omr/source
-        DEST=\"path/to/omr/build/directory\"
+    Usage:
 
-    To cross compile set 
-        TOOLCHAIN=\"path/to/toolchain\"
-        TARGET_ARCH=\"arch\"
+        $0 [cmake extra args] ... 
+
+        Necessary Variables:
+
+            SOURCE=\"path/to/omr/source
+
+            DEST=\"path/to/omr/build/directory\"
+
+        To cross compile set 
+
+            TOOLCHAIN=\"path/to/toolchain/bin\"
+                This script will pick up the first *-g++ in the directory and request it's triplet
 
         N.B when cross compiling we build the native architecture depency @ \${DEST}/../cross_build_dependency
 "
@@ -32,15 +37,20 @@ mkdir -p ${MY_DESTINATION} && cd ${MY_DESTINATION}
 ################################
 # add the toolchain to the path
 if [ "_${TOOLCHAIN}" != "_" ]; then
-    [ "_${TARGET_ARCH}" == "_" ] && echo "TARGET_ARCH is not set for cross compilation" && exit 1
-    MY_TOOLCHAIN=${TOOLCHAIN}
-    MY_TARGET=${TARGET_ARCH}
-    unset TARGET_ARCH
+    export PATH="$(echo ${TOOLCHAIN}):${PATH}"
+    MY_TARGET_TRIPLET=$( $(find ${TOOLCHAIN} -name "*-g++") -dumpmachine)  
+    MY_TARGET=$(echo ${MY_TARGET_TRIPLET} | cut -d '-' -f 1)
     unset TOOLCHAIN
 
     DEPENDS_DIR="${MY_DESTINATION}/../cross_build_dependency"
 
-    if [ ! -e ${DEPENDS_DIR} ] || [ ! -e "${DEPENDS_DIR}/tools/ImportTools.cmake" ]; then
+    if [ ! -e ${DEPENDS_DIR} ] \
+    || [ ! -e "${DEPENDS_DIR}/tools/ImportTools.cmake" ] \
+    || [ ! -e "${DEPENDS_DIR}/tools/hookgen/hookgen" ] \
+    || [ ! -e "${DEPENDS_DIR}/tools/tracegen/tracegen" ] \
+    || [ ! -e "${DEPENDS_DIR}/tools/tracemerge/tracemerge" ]
+    then
+        rm -r ${DEPENDS_DIR} || true
         mkdir -p ${DEPENDS_DIR} && cd ${DEPENDS_DIR}
 
         if [ "_$(which ninja | grep -v "not found")" != "_" ]; then
@@ -51,15 +61,8 @@ if [ "_${TOOLCHAIN}" != "_" ]; then
             cmake --build .
         fi
     fi;
-    
-    export PATH="$(echo ${MY_TOOLCHAIN}):${PATH}"
-    echo "
-    ####### 
-    PATH
-        ${PATH}
-    #######
-    "
-    sed "s/THIS_TARGET_ARCH/${MY_TARGET}/" ${MY_DIR}/cmake.template > ${MY_DIR}/${MY_TARGET}.cmake
+    sed "s/THIS_TARGET_ARCH/${MY_TARGET}/g" ${MY_DIR}/cmake.template > ${MY_DIR}/${MY_TARGET}.cmake
+    sed -i "s/THIS_TARGET_TRIPLE/${MY_TARGET_TRIPLET}/g" ${MY_DIR}/${MY_TARGET}.cmake
 
     ##################################
     # build

@@ -188,7 +188,7 @@ $(OMRDIR)/$(CROSS_BUILD): toolchains/gcc-$(TARGET_ARCH)
 
 run:
 	@echo "----------------------------"
-	@echo "This is a place holder function your builds are located at $(OMRDIR)/$(BUILD_ROOT_DIR)
+	@echo "This is a place holder function your builds are located at $(OMRDIR)/$(BUILD_ROOT_DIR)"
 	@echo "----------------------------"
 	@echo "-------exiting from makefile"
 
