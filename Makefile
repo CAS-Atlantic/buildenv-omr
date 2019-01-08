@@ -55,7 +55,7 @@ fresh:
 	rm -Rf $(OMRDIR)/$(NATIVE_BUILD)
 
 clean: fresh
-	git clean -dxf -e toolchains/gcc_
+	git clean -dxf -e toolchains
 
 docker_static_bin:
 	@echo "Registering qemu user static"
