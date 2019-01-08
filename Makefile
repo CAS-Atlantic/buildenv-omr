@@ -51,6 +51,12 @@ help:
 			build	\n\
 				build the omr binaries based on the flags\n\
 \n\
+			docker_build	\n\
+				build the omr binaries based on the flags inside a container \n\
+\n\
+			docker_native	\n\
+				build the omr binaries based on the flags inside an architecture native container \n\
+\n\
 			[$(ARCHES)]	\n\
 				To build one of the diplayed Docker container for this architecture\n\
 \n\
@@ -62,6 +68,11 @@ help:
 \n\
 			fresh \n\
 				delete built binaries in $(BUILD_ROOT_DIR)\n\
+\n\
+			clean_docker \n\
+				delete dangling containers and images and volumes\n\
+			
+			clean_docker
 	\n\
 	"
 
