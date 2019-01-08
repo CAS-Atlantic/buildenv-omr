@@ -153,7 +153,7 @@ docker_$(CROSS_BUILD): $(HOST)
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e BUILD_ROOT_DIR=$(BUILD_ROOT_DIR) \
-		-e TARGET_ARCH=$(TARGET_ARCH)
+		-e TARGET_ARCH=$(TARGET_ARCH) \
 		-e MAKE_CMD=build \
 		-v /etc/passwd:/etc/passwd \
 		$(OWNER)/$(HOST) \
@@ -178,7 +178,7 @@ docker_run: $(TARGET_ARCH)
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e BUILD_ROOT_DIR=$(BUILD_ROOT_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
-		-e MAKE_CMD"run \
+		-e MAKE_CMD=run \
 		$(OWNER)/$(TARGET_ARCH)
 
 ######################

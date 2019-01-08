@@ -1,6 +1,20 @@
 
 # buildenv-omr
 
+## Dependency
+
+### For building using docker
+    Docker:
+        see https://docs.docker.com/install/linux/docker-ce/ubuntu/
+
+    qemu-user-static:
+        see you package manager
+        ubuntu: qemu-user-static
+
+### For building localy
+
+    if ninja-build is provided we will use it 
+    
 ## Makefile Usage
 ```
 Usage:
