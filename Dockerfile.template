@@ -85,6 +85,7 @@ make \
 	OMRDIR=\${OMRDIR} \
 	BUILD_ROOT_DIR=\${BUILD_ROOT_DIR} \
 	TARGET_ARCH=\${TARGET_ARCH} \n\
+cd \${OMRDIR}/build \n\
 " > /init_script.sh && chmod +x /init_script.sh
 
 RUN groupadd THIS_GROUP || /bin/true

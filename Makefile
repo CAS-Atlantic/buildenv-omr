@@ -29,8 +29,14 @@ help:
 	@echo -e "\
 	Usage:\n\
 		FLAGS:\n\
+			-------------- GLOBALS -------------------------------------------- \n\
 			TARGET_ARCH=\"target architecture\"      (default: $(TARGET_ARCH))\n\
 				allows you to change the target architecture to build to \n\
+\n\
+			OMRDIR=\"path/to/omr\"                   (default: ../) \n\
+				to change the location of the omr root directory \n\
+\n\
+			-------------- Docker Specific ------------------------------------ \n\
 \n\
 			OWNER=\"docker repo\"                    (default: $(OWNER))\n\
 				to change the repo the docker images are built to \n\
@@ -40,16 +46,22 @@ help:
 \n\
 			GCC_V=\"gcc version number\"             (default: $(GCC_V)) \n\
 				to change the gcc version, might break so, thread carefully\n\
-\n\
-			OMRDIR=\"path/to/omr\"                   (default: ../) \n\
-				to change the location of the omr root directory \n\
-\n\
-			BUILD_ROOT_DIR=\"/path/to/base/build\"   (default: OMRDIR/$(BUILD_ROOT_DIR))\n\
-				to change the base directory to store all the builds (cross_build, native_build) \n\
+
 \n\
 		CMD:\n\
 			build	\n\
 				build the omr binaries based on the flags\n\
+\n\
+			all	\n\
+				To build all the docker architecture\n\
+\n\
+			clean \n\
+				delete everything in here and do a make fresh\n\
+\n\
+			fresh \n\
+				delete built binaries in OMRDIR/build \n\
+\n\
+			-------------- Docker Specific ------------------------------------ \n\
 \n\
 			docker_build	\n\
 				build the omr binaries based on the flags inside a container \n\
@@ -59,15 +71,6 @@ help:
 \n\
 			[$(ARCHES)]	\n\
 				To build one of the diplayed Docker container for this architecture\n\
-\n\
-			all	\n\
-				To build all the docker architecture\n\
-\n\
-			clean \n\
-				delete everything in here and do a make fresh\n\
-\n\
-			fresh \n\
-				delete built binaries in $(BUILD_ROOT_DIR)\n\
 \n\
 			clean_docker \n\
 				delete dangling containers and images and volumes\n\
@@ -131,9 +134,10 @@ $(ARCHES): docker_static_bin
 	sed -i "s/THIS_USER/$(USER_IN)/g"  $@.Dockerfile
 	sed -i "s/THIS_UID/$(UID_IN)/g"  $@.Dockerfile
 
-	[ "$@" == "$(HOST)" ] \
-	&&	sed -i "/THIS_QEMU_ARCH/d" $@.Dockerfile \
-	||	sed -i "s/THIS_QEMU_ARCH/$@/g" $@.Dockerfile;
+	case $@ in \
+		$(HOST)) 	sed -i "/THIS_QEMU_ARCH/d" $@.Dockerfile ;;\
+		*)			sed -i "s/THIS_QEMU_ARCH/$@/g" $@.Dockerfile;;\
+	esac
 
 	docker build \
 		-t $(OWNER)/$@ \
@@ -157,7 +161,7 @@ docker_native: $(TARGET_ARCH)
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
-		-e MAKE_CMD=build \
+		-e MAKE_CMD=build_native \
 		$(OWNER)/$(TARGET_ARCH)
 
 docker_cross: $(HOST)
@@ -169,7 +173,7 @@ docker_cross: $(HOST)
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
-		-e MAKE_CMD=build \
+		-e MAKE_CMD=build_cross_no_run \
 		$(OWNER)/$(HOST) \
 		/bin/bash /init_script.sh
 
@@ -201,13 +205,14 @@ build_native:
 	export DEST=$(OMRDIR)/build/native_build &&\
 	$(THIS_DIR)/buildOMR.sh -C$(THIS_DIR)/compile_target.cmake
 
-build_cross: toolchains/gcc-$(TARGET_ARCH)
+build_cross_no_run: toolchains/gcc-$(TARGET_ARCH)
 	mkdir -p $(OMRDIR)/build/cross_build
 	export SOURCE=$(OMRDIR) &&\
 	export DEST=$(OMRDIR)/build/cross_build &&\
 	export TOOLCHAIN=$(THIS_DIR)/toolchains/gcc-$(TARGET_ARCH)/bin &&\
 	$(THIS_DIR)/buildOMR.sh -C$(THIS_DIR)/compile_target.cmake
 		
+build_cross: build_cross_no_run
 # attach to other container for cross build
 	$(MAKE) docker_run TARGET_ARCH=$(TARGET_ARCH) OMRDIR=$(OMRDIR)
 
