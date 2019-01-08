@@ -7,6 +7,7 @@ TARGET_ARCH ?= $(HOST)
 
 THIS_DIR := $(shell readlink -f $${PWD} )
 OMRDIR ?= $(shell cd .. && readlink -f $${PWD} )
+HOMES_DIR ?= $(shell readlink -f ~/ )
 
 ifeq ($(TARGET_ARCH),$(HOST))
   BUILD_TYPE := native
@@ -20,6 +21,7 @@ UID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 USER_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GROUP_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
+
 
 MOUNT_TYPE := shared
 
@@ -132,6 +134,7 @@ $(ARCHES): docker_static_bin
 	sed -i "s/THIS_GID/$(GID_IN)/g"  $@.Dockerfile
 	sed -i "s/THIS_USER/$(USER_IN)/g"  $@.Dockerfile
 	sed -i "s/THIS_UID/$(UID_IN)/g"  $@.Dockerfile
+	sed -i "s/THIS_HOMES/$(HOMES_DIR)/g"  $@.Dockerfile
 
 	case $@ in \
 		$(HOST)) 	sed -i "/THIS_QEMU_ARCH/d" $@.Dockerfile ;;\
@@ -154,9 +157,8 @@ docker_build: docker_$(BUILD_TYPE)
 docker_native: $(TARGET_ARCH)
 	docker run -it \
 		--privileged \
-		-v /home/$(USER_IN):/home/$(USER_IN):$(MOUNT_TYPE) \
+		-v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE) \
 		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
-		-v /etc/passwd:/etc/passwd:ro,$(MOUNT_TYPE) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
@@ -166,9 +168,8 @@ docker_native: $(TARGET_ARCH)
 docker_cross: $(HOST)
 	docker run -it \
 		--privileged \
-		-v /home/$(USER_IN):/home/$(USER_IN):$(MOUNT_TYPE) \
+		-v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE) \
 		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
-		-v /etc/passwd:/etc/passwd:ro,$(MOUNT_TYPE) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
@@ -187,9 +188,8 @@ docker_cross: $(HOST)
 docker_run: $(TARGET_ARCH)
 	docker run -it \
 		--privileged \
-		-v /home/$(USER_IN):/home/$(USER_IN):$(MOUNT_TYPE) \
+		-v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE) \
 		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
-		-v /etc/passwd:/etc/passwd:ro,$(MOUNT_TYPE) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \

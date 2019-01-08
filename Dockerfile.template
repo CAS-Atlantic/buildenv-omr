@@ -90,7 +90,7 @@ cd \${OMRDIR}/build \n\
 
 RUN groupadd THIS_GROUP || /bin/true
 RUN groupmod -g THIS_GID THIS_GROUP
-RUN useradd -u THIS_UID -g THIS_GID -G THIS_GROUP -m -s /bin/bash THIS_USER
+RUN useradd -u THIS_UID -g THIS_GID -G THIS_GROUP -m -s /bin/bash -d THIS_HOMES THIS_USER
 USER THIS_USER
 
 CMD [ "/bin/bash", "--init-file", "/init_script.sh" ]
