@@ -17,10 +17,10 @@ Usage:
 		GCC_V="gcc version number"             (default: 4.9) 
 			to change the gcc version, might break so, thread carefully
 
-		OMRDIR="ubuntu version number"         (default: /workspace/omr) 
+		OMRDIR="ubuntu version number"         (default: ../) 
 			to change the location of the omr root directory 
 
-		BUILD_ROOT_DIR="/path/to/base/build"   (default: build)
+		BUILD_ROOT_DIR="/path/to/base/build"   (default: OMRDIR/build)
 			to change the base directory to store all the builds (cross_build, native_build) 
 
 	CMD:

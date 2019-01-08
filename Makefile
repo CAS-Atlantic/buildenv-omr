@@ -45,10 +45,10 @@ help:
 			GCC_V=\"gcc version number\"             (default: $(GCC_V)) \n\
 				to change the gcc version, might break so, thread carefully\n\
 \n\
-			OMRDIR=\"ubuntu version number\"         (default: $(OMRDIR)) \n\
+			OMRDIR=\"ubuntu version number\"         (default: ../) \n\
 				to change the location of the omr root directory \n\
 \n\
-			BUILD_ROOT_DIR=\"/path/to/base/build\"   (default: $(BUILD_ROOT_DIR))\n\
+			BUILD_ROOT_DIR=\"/path/to/base/build\"   (default: OMRDIR/$(BUILD_ROOT_DIR))\n\
 				to change the base directory to store all the builds (cross_build, native_build) \n\
 \n\
 		CMD:\n\
