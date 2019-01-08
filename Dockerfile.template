@@ -56,10 +56,8 @@ RUN useradd \
 		-s /bin/bash \
 		THIS_USER
 
-RUN useradd \
+RUN usermod \
 		-d THIS_HOMES \
 		THIS_USER || /bin/true
-
-USER THIS_USER
 
 CMD [ "/bin/bash", "--init-file", "/init_script.sh" ]

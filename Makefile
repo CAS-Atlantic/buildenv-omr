@@ -168,6 +168,7 @@ docker_native: $(TARGET_ARCH)
 		--privileged \
 		-v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE) \
 		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
+		--user $(USER_IN) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
@@ -179,6 +180,7 @@ docker_cross: $(HOST)
 		--privileged \
 		-v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE) \
 		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
+		--user $(USER_IN) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
@@ -199,6 +201,7 @@ docker_run: $(TARGET_ARCH)
 		--privileged \
 		-v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE) \
 		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
+		--user $(USER_IN) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
