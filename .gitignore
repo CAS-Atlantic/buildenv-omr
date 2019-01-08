@@ -7,3 +7,4 @@
 !buildOMR.sh
 !toolchains/get_*_toolchain.sh
 !toolchains
+!build_docs.sh

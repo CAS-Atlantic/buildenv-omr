@@ -1,11 +1,33 @@
 #!/bin/bash
 set -e
-[ "_${SOURCE}" == "_" ] && echo "SOURCE is not set exiting" && exit 1
-[ "_${DEST}" == "_" ] && echo "DEST is not set exiting" && exit 1
+
+help_me () {
+EXIT_CODE=$1
+shift
+echo "$@
+Usage:
+    $0 [cmake extra args] ... 
+    Necessary Variables:
+        SOURCE=\"path/to/omr/source
+        DEST=\"path/to/omr/build/directory\"
+
+    To cross compile set 
+        TOOLCHAIN=\"path/to/toolchain\"
+        TARGET_ARCH=\"arch\"
+
+        N.B when cross compiling we build the native architecture depency @ \${DEST}/../cross_build_dependency
+"
+exit $EXIT_CODE
+}
+
+[ "_$1" == "_help" ]    && help_me 0
+[ "_${SOURCE}" == "_" ] && help_me 1 "ERROR: SOURCE is not set exiting"
+[ "_${DEST}" == "_" ]   && help_me 1 "ERROR: DEST is not set exiting"
 
 MY_DESTINATION=$( readlink -f ${DEST} )
 MY_SOURCE=$( readlink -f ${SOURCE} )
 MY_DIR=$( dirname $(readlink -f $0) )
+mkdir -p ${MY_DESTINATION} && cd ${MY_DESTINATION}
 
 ################################
 # add the toolchain to the path
@@ -41,7 +63,7 @@ if [ "_${TOOLCHAIN}" != "_" ]; then
 
     ##################################
     # build
-    mkdir -p ${MY_DESTINATION} && cd ${MY_DESTINATION}
+    cd ${MY_DESTINATION}
     if [ "_$(which ninja | grep -v "not found")" != "_" ]; then
         cmake \
             -GNinja \

@@ -1,11 +1,10 @@
 OWNER ?= omr_builder
-UBUNTU_V ?= "16.04"
-GCC_V ?= "4.9"
+UBUNTU_V ?= 16.04
+GCC_V ?= 4.9
 
 HOST := $(shell uname -m)
 TARGET_ARCH ?= $(HOST)
 
-WITH_DOCKER ?= false
 OMRDIR ?= $(shell readlink -f ..)
 
 #######################
@@ -20,10 +19,6 @@ else
   BUILD_TYPE := $(CROSS_BUILD)
 endif
 
-#######################
-# this is for the toolchain try to match gcc_v with version
-AARCH64_TOOLCHAIN_VERSION := 4.9
-
 ARCHES := x86_64 arm aarch64 i386 ppc64le s390x
 
 THIS_DIR := $(shell readlink -f .)
@@ -32,27 +27,57 @@ GID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 USER_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GROUP_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 
-.PHONY: help clean build docker_$(CROSS_BUILD) docker_$(NATIVE_BUILD) run docker_run toolchains/gcc-$(TARGET_ARCH)
+.PHONY: help clean build docker_$(CROSS_BUILD) docker_$(NATIVE_BUILD) run docker_run toolchains/gcc-$(TARGET_ARCH) the_docs
 
 help:
-	@echo -e "\n\
+	@echo -e "\
 	Usage:\n\
-		FLAGS:
-			TARGET_ARCH="target architecture" allows you to change the target architecture to build to 
-
-		CMD:
-			build
-			$(ARCHES)			To build one of the Docker container for this architecture
-			all					To build all the architecture
-			clean				delete everything in here
-			fresh				delete built binaries
-			patch_aarch64		this patches aarch64 to build only jitbuilder
+		FLAGS:\n\
+			TARGET_ARCH=\"target architecture\"      (default: $(TARGET_ARCH))\n\
+				allows you to change the target architecture to build to \n\
+\n\
+			OWNER=\"docker repo\"                    (default: $(OWNER))\n\
+				to change the repo the docker images are built to \n\
+\n\
+			UBUNTU_V=\"ubuntu version number\"       (default: $(UBUNTU_V))\n\
+				to change the repo the docker images are built to \n\
+\n\
+			GCC_V=\"gcc version number\"             (default: $(GCC_V)) \n\
+				to change the gcc version, might break so, thread carefully\n\
+\n\
+			OMRDIR=\"ubuntu version number\"         (default: $(OMRDIR)) \n\
+				to change the location of the omr root directory \n\
+\n\
+			BUILD_ROOT_DIR=\"/path/to/base/build\"   (default: $(BUILD_ROOT_DIR))\n\
+				to change the base directory to store all the builds (cross, native etc..) \n\
+\n\
+			CROSS_BUILD=\"/path/to/cross/build\"     (default: $(CROSS_BUILD)) \n\
+				to change the directory to store the cross compiled build \n\
+\n\
+			NATIVE_BUILD=\"/path/to/native/build\"   (default: $(NATIVE_BUILD)) \n\
+				to change the directory to store the native compiled build \n\
+\n\
+\n\
+		CMD:\n\
+			build	\n\
+				build the omr binaries based on the flags\n\
+\n\
+			[$(ARCHES)]	\n\
+				To build one of the diplayed Docker container for this architecture\n\
+\n\
+			all	\n\
+				To build all the docker architecture\n\
+\n\
+			clean \n\
+				delete everything in here and do a make fresh\n\
+\n\
+			fresh \n\
+				delete built binaries in $(BUILD_ROOT_DIR)\n\
 	\n\
 	"
 
 fresh:
-	rm -Rf $(BUILD_ROOT_DIR)
-	rm -Rf $(OMRDIR)/$(NATIVE_BUILD)
+	rm -Rf $(OMRDIR)/$(BUILD_ROOT_DIR)
 
 clean: fresh
 	git clean -dxf -e toolchains
@@ -121,7 +146,7 @@ docker_$(NATIVE_BUILD): $(TARGET_ARCH)
 		-v $(OMRDIR):$(OMRDIR) \
 		-e OMRDIR=$(OMRDIR) \
 		-v /etc/passwd:/etc/passwd \
-		-e INIT_ARGS="$(OMRDIR)/$(NATIVE_BUILD) OMRDIR=$(OMRDIR); cd $(OMRDIR)/$(NATIVE_BUILD)" \
+		-e INIT_ARGS="build OMRDIR=$(OMRDIR)" \
 		$(OWNER)/$(TARGET_ARCH)
 
 docker_$(CROSS_BUILD): $(HOST)
@@ -132,7 +157,7 @@ docker_$(CROSS_BUILD): $(HOST)
 		-e OMRDIR=$(OMRDIR) \
 		-v /etc/passwd:/etc/passwd \
 		$(OWNER)/$(HOST) \
-		/bin/bash -c 'cd $(THIS_DIR) && make $(OMRDIR)/$(CROSS_BUILD) TARGET_ARCH=$(TARGET_ARCH) OMRDIR=$(OMRDIR)'
+		/bin/bash -c 'cd $(THIS_DIR) && make build TARGET_ARCH=$(TARGET_ARCH) OMRDIR=$(OMRDIR)'
 
 # attach to other container for cross build
 	$(MAKE) docker_run TARGET_ARCH=$(TARGET_ARCH) OMRDIR=$(OMRDIR)
@@ -146,17 +171,19 @@ docker_run: $(TARGET_ARCH)
 		-v /etc/passwd:/etc/passwd \
 		-v $(OMRDIR):$(OMRDIR) \
 		-e OMRDIR=$(OMRDIR) \
-		-e INIT_ARGS="run ; cd $(CROSS_BUILD)" \
+		-e INIT_ARGS="run" \
 		$(OWNER)/$(TARGET_ARCH)
 
 ######################
 # using local build environement
 $(OMRDIR)/$(NATIVE_BUILD):
+	mkdir -p $(OMRDIR)/$(NATIVE_BUILD)
 	export SOURCE=$(OMRDIR) &&\
 	export DEST=$(OMRDIR)/$(NATIVE_BUILD) &&\
 	$(THIS_DIR)/buildOMR.sh -C$(THIS_DIR)/compile_target.cmake
 
 $(OMRDIR)/$(CROSS_BUILD): toolchains/gcc-$(TARGET_ARCH)
+	mkdir -p $(OMRDIR)/$(CROSS_BUILD)
 	export SOURCE=$(OMRDIR) &&\
 	export DEST=$(OMRDIR)/$(CROSS_BUILD) &&\
 	export TOOLCHAIN=$(THIS_DIR)/toolchains/gcc-$(TARGET_ARCH)/bin &&\
@@ -167,7 +194,13 @@ $(OMRDIR)/$(CROSS_BUILD): toolchains/gcc-$(TARGET_ARCH)
 	$(MAKE) docker_run TARGET_ARCH=$(TARGET_ARCH) OMRDIR=$(OMRDIR)
 
 run:
-	@echo "This is a place holder function, exiting from makefile"
+	@echo "----------------------------"
+	@echo "This is a place holder function your builds are located at $(OMRDIR)/$(BUILD_ROOT_DIR)
+	@echo "----------------------------"
+	@echo "-------exiting from makefile"
+
+the_docs:
+	$(THIS_DIR)/build_docs.sh
 
 
 
