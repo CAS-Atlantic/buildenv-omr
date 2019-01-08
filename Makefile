@@ -10,6 +10,8 @@ OMRDIR ?= $(shell cd .. && readlink -f $${PWD} )
 HOMES_DIR ?= $(shell readlink -f ~/ )
 ESCAPED_HOMES := $(shell echo $(HOMES_DIR) | sed 's/\//\\\\\//g')
 
+MOUNT_TYPE := shared
+
 MOUNT_CMD := -v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE) -v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE)
 #if omr directory is in your home folder, dont mount that volume in docker
 ifeq ($(shell echo $(OMRDIR) | grep $(HOMES_DIR)),$(OMRDIR))
@@ -28,9 +30,6 @@ UID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 USER_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GROUP_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
-
-
-MOUNT_TYPE := shared
 
 .PHONY: help clean build build_native build_cross docker_native docker_cross run docker_run toolchains/gcc-$(TARGET_ARCH) the_docs
 
