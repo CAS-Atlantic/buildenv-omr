@@ -10,8 +10,8 @@ OMRDIR ?= $(shell readlink -f ..)
 #######################
 # this is for building the binaries
 BUILD_ROOT_DIR ?= build
-CROSS_BUILD ?= $(BUILD_ROOT_DIR)/cross_build
-NATIVE_BUILD ?= $(BUILD_ROOT_DIR)/native_build
+CROSS_BUILD := $(BUILD_ROOT_DIR)/cross_build
+NATIVE_BUILD := $(BUILD_ROOT_DIR)/native_build
 
 ifeq ($(TARGET_ARCH),$(HOST))
   BUILD_TYPE := $(NATIVE_BUILD)
@@ -49,14 +49,7 @@ help:
 				to change the location of the omr root directory \n\
 \n\
 			BUILD_ROOT_DIR=\"/path/to/base/build\"   (default: $(BUILD_ROOT_DIR))\n\
-				to change the base directory to store all the builds (cross, native etc..) \n\
-\n\
-			CROSS_BUILD=\"/path/to/cross/build\"     (default: $(CROSS_BUILD)) \n\
-				to change the directory to store the cross compiled build \n\
-\n\
-			NATIVE_BUILD=\"/path/to/native/build\"   (default: $(NATIVE_BUILD)) \n\
-				to change the directory to store the native compiled build \n\
-\n\
+				to change the base directory to store all the builds (cross_build, native_build) \n\
 \n\
 		CMD:\n\
 			build	\n\

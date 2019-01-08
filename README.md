@@ -21,14 +21,7 @@ Usage:
 			to change the location of the omr root directory 
 
 		BUILD_ROOT_DIR="/path/to/base/build"   (default: build)
-			to change the base directory to store all the builds (cross, native etc..) 
-
-		CROSS_BUILD="/path/to/cross/build"     (default: build/cross_build) 
-			to change the directory to store the cross compiled build 
-
-		NATIVE_BUILD="/path/to/native/build"   (default: build/native_build) 
-			to change the directory to store the native compiled build 
-
+			to change the base directory to store all the builds (cross_build, native_build) 
 
 	CMD:
 		build	
