@@ -5,29 +5,25 @@ GCC_V ?= 4.9
 HOST := $(shell uname -m)
 TARGET_ARCH ?= $(HOST)
 
-OMRDIR ?= $(shell readlink -f ..)
-
-#######################
-# this is for building the binaries
-BUILD_ROOT_DIR ?= build
-CROSS_BUILD := $(BUILD_ROOT_DIR)/cross_build
-NATIVE_BUILD := $(BUILD_ROOT_DIR)/native_build
+THIS_DIR := $(shell readlink -f $${PWD} )
+OMRDIR ?= $(shell cd .. && readlink -f $${PWD} )
 
 ifeq ($(TARGET_ARCH),$(HOST))
-  BUILD_TYPE := $(NATIVE_BUILD)
+  BUILD_TYPE := native
 else
-  BUILD_TYPE := $(CROSS_BUILD)
+  BUILD_TYPE := cross
 endif
 
 ARCHES := x86_64 arm aarch64 i386 ppc64le s390x
 
-THIS_DIR := $(shell readlink -f .)
 UID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 USER_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GROUP_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 
-.PHONY: help clean build docker_$(CROSS_BUILD) docker_$(NATIVE_BUILD) run docker_run toolchains/gcc-$(TARGET_ARCH) the_docs
+MOUNT_TYPE := shared
+
+.PHONY: help clean build build_native build_cross docker_native docker_cross run docker_run toolchains/gcc-$(TARGET_ARCH) the_docs
 
 help:
 	@echo -e "\
@@ -74,6 +70,17 @@ fresh:
 
 clean: fresh
 	git clean -dxf -e toolchains
+
+clean_docker:
+	@docker rm -v $$(docker ps -a -q) &> /dev/null; \
+	docker volume rm $$(docker volume ls -q -f dangling=true) &> /dev/null; \
+	docker rmi $$(docker images -f dangling=true) &> /dev/null; \
+	echo -e "\nContainers Left -----------\n"; \
+	docker ps -a; \
+	echo -e "\nVolumes Left -----------\n"; \
+	docker volume ls; \
+	echo -e "\nImages Left -----------\n"; \
+	docker images
 
 docker_static_bin:
 	@echo "Registering qemu user static"
@@ -126,44 +133,41 @@ $(ARCHES): docker_static_bin
 
 all: $(ARCHES)
 
-build: $(OMRDIR)/$(BUILD_TYPE)
+build: build_$(BUILD_TYPE)
 
 docker_build: docker_$(BUILD_TYPE)
 
 ######################
 # using docker build environement
-docker_$(NATIVE_BUILD): $(TARGET_ARCH)
+docker_native: $(TARGET_ARCH)
 	docker run -it \
 		--privileged \
-		-v /home/$(USER_IN):/home/$(USER_IN) \
-		-v $(OMRDIR):$(OMRDIR) \
+		-v /home/$(USER_IN):/home/$(USER_IN):$(MOUNT_TYPE) \
+		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
+		-v /etc/passwd:/etc/passwd:ro,$(MOUNT_TYPE) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
-		-e BUILD_ROOT_DIR=$(BUILD_ROOT_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
 		-e MAKE_CMD=build \
-		-v /etc/passwd:/etc/passwd \
 		$(OWNER)/$(TARGET_ARCH)
 
-docker_$(CROSS_BUILD): $(HOST)
+docker_cross: $(HOST)
 	docker run -it \
 		--privileged \
-		-v /home/$(USER_IN):/home/$(USER_IN) \
-		-v $(OMRDIR):$(OMRDIR) \
+		-v /home/$(USER_IN):/home/$(USER_IN):$(MOUNT_TYPE) \
+		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
+		-v /etc/passwd:/etc/passwd:ro,$(MOUNT_TYPE) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
-		-e BUILD_ROOT_DIR=$(BUILD_ROOT_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
 		-e MAKE_CMD=build \
-		-v /etc/passwd:/etc/passwd \
 		$(OWNER)/$(HOST) \
-		/init_script.sh
+		/bin/bash /init_script.sh
 
 # attach to other container for cross build
 	$(MAKE) docker_run \
 		OMRDIR=$(OMRDIR) \
 		BUILDER_DIR=$(THIS_DIR) \
-		BUILD_ROOT_DIR=$(BUILD_ROOT_DIR) \
 		TARGET_ARCH=$(TARGET_ARCH)
 
 ############################
@@ -171,28 +175,27 @@ docker_$(CROSS_BUILD): $(HOST)
 docker_run: $(TARGET_ARCH)
 	docker run -it \
 		--privileged \
-		-v /home/$(USER_IN):/home/$(USER_IN) \
-		-v /etc/passwd:/etc/passwd \
-		-v $(OMRDIR):$(OMRDIR) \
+		-v /home/$(USER_IN):/home/$(USER_IN):$(MOUNT_TYPE) \
+		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
+		-v /etc/passwd:/etc/passwd:ro,$(MOUNT_TYPE) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
-		-e BUILD_ROOT_DIR=$(BUILD_ROOT_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
 		-e MAKE_CMD=run \
 		$(OWNER)/$(TARGET_ARCH)
 
 ######################
 # using local build environement
-$(OMRDIR)/$(NATIVE_BUILD):
-	mkdir -p $(OMRDIR)/$(NATIVE_BUILD)
+build_native:
+	mkdir -p $(OMRDIR)/build/native_build
 	export SOURCE=$(OMRDIR) &&\
-	export DEST=$(OMRDIR)/$(NATIVE_BUILD) &&\
+	export DEST=$(OMRDIR)/build/native_build &&\
 	$(THIS_DIR)/buildOMR.sh -C$(THIS_DIR)/compile_target.cmake
 
-$(OMRDIR)/$(CROSS_BUILD): toolchains/gcc-$(TARGET_ARCH)
-	mkdir -p $(OMRDIR)/$(CROSS_BUILD)
+build_cross: toolchains/gcc-$(TARGET_ARCH)
+	mkdir -p $(OMRDIR)/build/cross_build
 	export SOURCE=$(OMRDIR) &&\
-	export DEST=$(OMRDIR)/$(CROSS_BUILD) &&\
+	export DEST=$(OMRDIR)/build/cross_build &&\
 	export TOOLCHAIN=$(THIS_DIR)/toolchains/gcc-$(TARGET_ARCH)/bin &&\
 	$(THIS_DIR)/buildOMR.sh -C$(THIS_DIR)/compile_target.cmake
 		

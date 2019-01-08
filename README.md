@@ -37,7 +37,7 @@ Usage:
 		OMRDIR="path/to/omr"                   (default: ../) 
 			to change the location of the omr root directory 
 
-		BUILD_ROOT_DIR="/path/to/base/build"   (default: OMRDIR/build)
+		BUILD_ROOT_DIR="/path/to/base/build"   (default: OMRDIR/)
 			to change the base directory to store all the builds (cross_build, native_build) 
 
 	CMD:
@@ -54,7 +54,7 @@ Usage:
 			delete everything in here and do a make fresh
 
 		fresh 
-			delete built binaries in build
+			delete built binaries in 
 ```
 ## buildOMR.sh wrapper Usage
 

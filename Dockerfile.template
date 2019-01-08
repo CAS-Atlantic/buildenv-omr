@@ -78,7 +78,14 @@ ENV BUILD_ROOT_DIR /omr/build
 ENV TARGET_ARCH THIS_QEMU_ARCH
 ENV MAKE_CMD run
 
-RUN echo "cd \${BUILDERDIR}; make \${MAKE_CMD} OMRDIR=\${OMRDIR} BUILD_ROOT_DIR=\${BUILD_ROOT_DIR} TARGET_ARCH=\${TARGET_ARCH}" > /init_script.sh && chmod +x /init_script.sh
+RUN echo "\
+cd \${BUILDER_DIR} \n\
+make \
+	\${MAKE_CMD} \
+	OMRDIR=\${OMRDIR} \
+	BUILD_ROOT_DIR=\${BUILD_ROOT_DIR} \
+	TARGET_ARCH=\${TARGET_ARCH} \n\
+" > /init_script.sh && chmod +x /init_script.sh
 
 RUN groupadd THIS_GROUP || /bin/true
 RUN groupmod -g THIS_GID THIS_GROUP
