@@ -57,9 +57,6 @@ help:
 			build	\n\
 				build the omr binaries based on the flags\n\
 \n\
-			all	\n\
-				To build all the docker architecture\n\
-\n\
 			clean \n\
 				delete everything in here and do a make fresh\n\
 \n\
@@ -68,14 +65,14 @@ help:
 \n\
 			-------------- Docker Specific ------------------------------------ \n\
 \n\
+			all	\n\
+				To build all the docker architecture\n\
+\n\
 			docker_build	\n\
 				build the omr binaries based on the flags inside a container \n\
 \n\
 			docker_native	\n\
 				build the omr binaries based on the flags inside an architecture native container \n\
-\n\
-			[$(ARCHES)]	\n\
-				To build one of the diplayed Docker container for this architecture\n\
 \n\
 			clean_docker \n\
 				delete dangling containers and images and volumes\n\
@@ -111,45 +108,54 @@ docker_static_bin:
 toolchains/gcc-$(TARGET_ARCH):
 	cd toolchains && ./get_$(TARGET_ARCH)_toolchain.sh
 
-x86_64.Dockerfile: Dockerfile.template
-	sed "s/THIS_DOCKER_ARCH/amd64/" Dockerfile.template > $@
+x86_64.BaseDockerfile: BaseDockerfile.template
+	sed "s/THIS_DOCKER_ARCH/amd64/g" BaseDockerfile.template > $@
 
-i386.Dockerfile: Dockerfile.template	
-	sed "s/THIS_DOCKER_ARCH/i386/" Dockerfile.template > $@
+i386.BaseDockerfile: BaseDockerfile.template	
+	sed "s/THIS_DOCKER_ARCH/i386/g" BaseDockerfile.template > $@
 
-arm.Dockerfile: Dockerfile.template
-	sed "s/THIS_DOCKER_ARCH/arm32v7/" Dockerfile.template > $@
+arm.BaseDockerfile: BaseDockerfile.template
+	sed "s/THIS_DOCKER_ARCH/arm32v7/g" BaseDockerfile.template > $@
 
-aarch64.Dockerfile: Dockerfile.template
-	sed "s/THIS_DOCKER_ARCH/arm64v8/" Dockerfile.template > $@
+aarch64.BaseDockerfile: BaseDockerfile.template
+	sed "s/THIS_DOCKER_ARCH/arm64v8/g" BaseDockerfile.template > $@
 
-s390x.Dockerfile: Dockerfile.template
-	sed "s/THIS_DOCKER_ARCH/s390x/" Dockerfile.template > $@
+s390x.BaseDockerfile: BaseDockerfile.template
+	sed "s/THIS_DOCKER_ARCH/s390x/g" BaseDockerfile.template > $@
 
-ppc64le.Dockerfile: Dockerfile.template
-	sed "s/THIS_DOCKER_ARCH/ppc64le/" Dockerfile.template > $@
+ppc64le.BaseDockerfile: BaseDockerfile.template
+	sed "s/THIS_DOCKER_ARCH/ppc64le/g" BaseDockerfile.template > $@
+
 
 # Build the docker environment
-%: %.Dockerfile docker_static_bin
-	sed -i "s/THIS_UBUNTU_V/$(UBUNTU_V)/g" $@.Dockerfile
-	sed -i "s/THIS_GCC_VERSION/$(GCC_V)/g" $@.Dockerfile
-	sed -i "s/THIS_GROUP/$(GROUP_IN)/g"  $@.Dockerfile
+%: %.BaseDockerfile docker_static_bin
+	sed -i "s/THIS_UBUNTU_V/$(UBUNTU_V)/g" $@.BaseDockerfile
+	sed -i "s/THIS_GCC_VERSION/$(GCC_V)/g" $@.BaseDockerfile
+
+	case $@ in \
+		$(HOST)) 	sed -i "/THIS_QEMU_ARCH/d" $@.BaseDockerfile ;;\
+		*)			sed -i "s/THIS_QEMU_ARCH/$@/g" $@.BaseDockerfile;;\
+	esac
+
+	docker build \
+		-t $(OWNER)/base_$@ \
+		-f $@.BaseDockerfile \
+		.
+
+	sed "s/THIS_TARGET/$@/g" Dockerfile.template > $@.Dockerfile
+	sed -i "s/THIS_OWNER/$(OWNER)/g" $@.Dockerfile
+	sed -i "s/THIS_GROUP/$(GROUP_IN)/g" $@.Dockerfile
 	sed -i "s/THIS_GID/$(GID_IN)/g"  $@.Dockerfile
 	sed -i "s/THIS_USER/$(USER_IN)/g"  $@.Dockerfile
 	sed -i "s/THIS_UID/$(UID_IN)/g"  $@.Dockerfile
 	sed -i "s/THIS_HOMES/$(ESCAPED_HOMES)/g"  $@.Dockerfile
-
-	case $@ in \
-		$(HOST)) 	sed -i "/THIS_QEMU_ARCH/d" $@.Dockerfile ;;\
-		*)			sed -i "s/THIS_QEMU_ARCH/$@/g" $@.Dockerfile;;\
-	esac
 
 	docker build \
 		-t $(OWNER)/$@ \
 		-f $@.Dockerfile \
 		.
 
-all: $(ARCHES)
+all: $(ARCHES).Dockerfile
 
 build: build_$(BUILD_TYPE)
 

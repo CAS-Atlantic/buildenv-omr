@@ -30,33 +30,46 @@
 # Once the build completes, you'll be left sitting at a prompt in the container so you can
 # run more commands.
 
-FROM THIS_OWNER/base_THIS_TARGET
+FROM THIS_DOCKER_ARCH/ubuntu:THIS_UBUNTU_V
+COPY docker_static_bin/qemu-THIS_QEMU_ARCH-static /usr/bin/
 
-ENV OMRDIR /omr
-ENV BUILDER_DIR /omr/builder-omr
-ENV TARGET_ARCH THIS_QEMU_ARCH
-ENV MAKE_CMD run
+# build requirements
+RUN apt-get update -y
+RUN apt-get install -y locales
+RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+ENV LANG en_US.utf8
 
-RUN echo "\
-cd \${BUILDER_DIR} \n\
-make \
-	\${MAKE_CMD} \
-	OMRDIR=\${OMRDIR} \
-	TARGET_ARCH=\${TARGET_ARCH} \n\
-cd \${OMRDIR}/build \n\
-" > /init_script.sh && chmod +x /init_script.sh
+# useful for working test failures
+RUN apt-get install -y \
+	gdb \
+	vim \
+	wget \
+	xz-utils \
+	bash \
+	ninja-build \
+	python3 \
+	git \
+	cmake \
+	bison \
+	flex \
+	libelf-dev \
+	libdwarf-dev \
+	libncurses5-dev \
+	readline-common
 
-RUN groupadd THIS_GROUP || /bin/true
-RUN groupmod -g THIS_GID THIS_GROUP
-RUN useradd \
-		-u THIS_UID \
-		-g THIS_GID \
-		-G THIS_GROUP \
-		-m \
-		-s /bin/bash \
-		-d THIS_HOMES \
-		THIS_USER
+# install defined gcc version 
+RUN apt-get install -y \
+	gcc-THIS_GCC_VERSION \
+	g++-THIS_GCC_VERSION
 
-USER THIS_USER
+RUN ln -s /usr/bin/g++-THIS_GCC_VERSION /usr/bin/g++
+RUN ln -s /usr/bin/QEMU_ARCH-linux-gnu-g++-THIS_GCC_VERSION /usr/bin/QEMU_ARCH-linux-gnu-g++
 
-CMD [ "/bin/bash", "--init-file", "/init_script.sh" ]
+# multilib not available on all arch
+RUN apt-get install -y \
+	gcc-THIS_GCC_VERSION-multilib \
+|| true
+
+RUN rm -rf /var/lib/apt/lists/*
+
+CMD [ "/bin/bash" ]

@@ -44,9 +44,6 @@ Usage:
 		build	
 			build the omr binaries based on the flags
 
-		all	
-			To build all the docker architecture
-
 		clean 
 			delete everything in here and do a make fresh
 
@@ -55,14 +52,14 @@ Usage:
 
 		-------------- Docker Specific ------------------------------------ 
 
+		all	
+			To build all the docker architecture
+
 		docker_build	
 			build the omr binaries based on the flags inside a container 
 
 		docker_native	
 			build the omr binaries based on the flags inside an architecture native container 
-
-		[x86_64 arm aarch64 i386 ppc64le s390x]	
-			To build one of the diplayed Docker container for this architecture
 
 		clean_docker 
 			delete dangling containers and images and volumes
