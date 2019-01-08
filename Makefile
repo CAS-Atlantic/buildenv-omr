@@ -138,8 +138,11 @@ docker_$(NATIVE_BUILD): $(TARGET_ARCH)
 		-v /home/$(USER_IN):/home/$(USER_IN) \
 		-v $(OMRDIR):$(OMRDIR) \
 		-e OMRDIR=$(OMRDIR) \
+		-e BUILDER_DIR=$(THIS_DIR) \
+		-e BUILD_ROOT_DIR=$(BUILD_ROOT_DIR) \
+		-e TARGET_ARCH=$(TARGET_ARCH) \
+		-e MAKE_CMD=build \
 		-v /etc/passwd:/etc/passwd \
-		-e INIT_ARGS="build OMRDIR=$(OMRDIR)" \
 		$(OWNER)/$(TARGET_ARCH)
 
 docker_$(CROSS_BUILD): $(HOST)
@@ -148,12 +151,20 @@ docker_$(CROSS_BUILD): $(HOST)
 		-v /home/$(USER_IN):/home/$(USER_IN) \
 		-v $(OMRDIR):$(OMRDIR) \
 		-e OMRDIR=$(OMRDIR) \
+		-e BUILDER_DIR=$(THIS_DIR) \
+		-e BUILD_ROOT_DIR=$(BUILD_ROOT_DIR) \
+		-e TARGET_ARCH=$(TARGET_ARCH)
+		-e MAKE_CMD=build \
 		-v /etc/passwd:/etc/passwd \
 		$(OWNER)/$(HOST) \
-		/bin/bash -c 'cd $(THIS_DIR) && make build TARGET_ARCH=$(TARGET_ARCH) OMRDIR=$(OMRDIR)'
+		/init_script.sh'
 
 # attach to other container for cross build
-	$(MAKE) docker_run TARGET_ARCH=$(TARGET_ARCH) OMRDIR=$(OMRDIR)
+	$(MAKE) docker_run \
+		OMRDIR=$(OMRDIR) \
+		BUILDER_DIR=$(THIS_DIR) \
+		BUILD_ROOT_DIR=$(BUILD_ROOT_DIR) \
+		TARGET_ARCH=$(TARGET_ARCH)
 
 ############################
 # runners 
@@ -164,7 +175,10 @@ docker_run: $(TARGET_ARCH)
 		-v /etc/passwd:/etc/passwd \
 		-v $(OMRDIR):$(OMRDIR) \
 		-e OMRDIR=$(OMRDIR) \
-		-e INIT_ARGS="run" \
+		-e BUILDER_DIR=$(THIS_DIR) \
+		-e BUILD_ROOT_DIR=$(BUILD_ROOT_DIR) \
+		-e TARGET_ARCH=$(TARGET_ARCH) \
+		-e MAKE_CMD"run \
 		$(OWNER)/$(TARGET_ARCH)
 
 ######################

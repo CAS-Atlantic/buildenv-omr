@@ -31,7 +31,7 @@
 # run more commands.
 
 FROM THIS_DOCKER_ARCH/ubuntu:THIS_UBUNTU_V
-COPY THIS_QEMU_ARCH /usr/bin/
+COPY docker_static_bin/qemu-THIS_QEMU_ARCH-static /usr/bin/
 
 # build requirements
 RUN apt-get update -y
@@ -73,9 +73,12 @@ RUN apt-get install -y \
 RUN rm -rf /var/lib/apt/lists/*
 
 ENV OMRDIR /omr
-ENV INIT_ARGS "build"
+ENV BUILDER_DIR /omr/builder-omr
+ENV BUILD_ROOT_DIR /omr/build
+ENV TARGET_ARCH THIS_QEMU_ARCH
+ENV MAKE_CMD run
 
-RUN echo "cd \${OMRDIR}/buildenv-omr; make \${INIT_ARGS}" > /init_script.sh && chmod +x /init_script.sh
+RUN echo "cd \${BUILDERDIR}; make \${MAKE_CMD} OMRDIR=\${OMRDIR} BUILD_ROOT_DIR=\${BUILD_ROOT_DIR} TARGET_ARCH=\${TARGET_ARCH}" > /init_script.sh && chmod +x /init_script.sh
 
 RUN groupadd THIS_GROUP || /bin/true
 RUN groupmod -g THIS_GID THIS_GROUP
