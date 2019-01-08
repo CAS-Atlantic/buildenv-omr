@@ -5,3 +5,5 @@
 !compile_target.cmake
 !*.md
 !buildOMR.sh
+!toolchains/get_*_toolchain.sh
+!toolchains

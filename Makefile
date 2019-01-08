@@ -3,29 +3,18 @@ UBUNTU_V ?= "16.04"
 GCC_V ?= "4.9"
 
 HOST := $(shell uname -m)
-TARGET ?= $(HOST)
+TARGET_ARCH ?= $(HOST)
 
 WITH_DOCKER ?= false
 OMRDIR ?= $(shell readlink -f ..)
 
-######################
-# to switch between build type
-DOCKER_BUILD := docker
-LOCAL_BUILD := native
-
-ifeq ($(WITH_DOCKER),true)
-  BUILD_ENV := $(DOCKER_BUILD)
-else
-  BUILD_ENV := $(LOCAL_BUILD)
-endif
-
 #######################
 # this is for building the binaries
-DEPENDENCY_BUILD ?= build/build_dependency
-CROSS_BUILD ?= build/cross_build
-NATIVE_BUILD ?= build/native_build
+BUILD_ROOT_DIR ?= build
+CROSS_BUILD ?= $(BUILD_ROOT_DIR)/cross_build
+NATIVE_BUILD ?= $(BUILD_ROOT_DIR)/native_build
 
-ifeq ($(TARGET),$(HOST))
+ifeq ($(TARGET_ARCH),$(HOST))
   BUILD_TYPE := $(NATIVE_BUILD)
 else
   BUILD_TYPE := $(CROSS_BUILD)
@@ -43,13 +32,13 @@ GID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 USER_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GROUP_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 
-.PHONY: help clean build docker_$(DEPENDENCY_BUILD) docker_$(CROSS_BUILD) docker_$(NATIVE_BUILD) $(DEPENDENCY_BUILD) $(CROSS_BUILD) $(NATIVE_BUILD) run docker_run get_toolchain
+.PHONY: help clean build docker_$(CROSS_BUILD) docker_$(NATIVE_BUILD) run docker_run toolchains/gcc-$(TARGET_ARCH)
 
 help:
 	@echo -e "\n\
 	Usage:\n\
 		FLAGS:
-			TARGET="target architecture" allows you to change the target architecture to build to 
+			TARGET_ARCH="target architecture" allows you to change the target architecture to build to 
 
 		CMD:
 			build
@@ -62,31 +51,11 @@ help:
 	"
 
 fresh:
-	rm -Rf $(OMRDIR)/$(DEPENDENCY_BUILD)
-	rm -Rf $(OMRDIR)/$(CROSS_BUILD)
+	rm -Rf $(BUILD_ROOT_DIR)
 	rm -Rf $(OMRDIR)/$(NATIVE_BUILD)
 
 clean: fresh
-	git clean -dxf
-
-toolchains:
-	mkdir -p toolchains
-
-############################
-# aarch64 toolchain depends
-AARCH64_TC_TAR_EXT := tar.xz
-AARCH64_UNTAR_CMD := xJ
-AARCH64_TC := gcc-linaro-$(AARCH64_TOOLCHAIN_VERSION).4-2017.01-x86_64_aarch64-linux-gnu
-AARCH64_TC_URL := https://releases.linaro.org/components/toolchain/binaries/$(AARCH64_TOOLCHAIN_VERSION)-2017.01/aarch64-linux-gnu/$(AARCH64_TC).$(AARCH64_TC_TAR_EXT)
-toolchains/gcc-aarch64: toolchains
-	# build toolchain dependencies
-	wget $(AARCH64_TC_URL) -qO- | tar -C toolchains -$(AARCH64_UNTAR_CMD) \
-	&& mv toolchains/$(AARCH64_TC) toolchains/gcc-aarch64 \
-	&& sed "s/THIS_TARGET_ARCH/aarch64/" cmake.template > toolchains/aarch64.cmake
-
-toolchains/set_path:
-	@for tc in $(THIS_DIR)/toolchains/gcc-*; do export PATH="$${tc}/bin:$${PATH}" && echo $${tc} to PATH; done; echo $${PATH}
-	
+	git clean -dxf -e toolchains/gcc_
 
 docker_static_bin:
 	@echo "Registering qemu user static"
@@ -96,6 +65,9 @@ docker_static_bin:
 	mkdir -p $@
 	for ARCH in $(ARCHES); do cp /usr/bin/qemu-$${ARCH}-static $@/; done;
 	@echo "done"
+
+toolchains/gcc-$(TARGET_ARCH):
+	toolchains/get_$(TARGET_ARCH)_toolchain.sh
 
 x86_64.Dockerfile: Dockerfile.template
 	sed "s/THIS_DOCKER_ARCH/amd64/" Dockerfile.template > $@
@@ -136,70 +108,63 @@ $(ARCHES): docker_static_bin
 
 all: $(ARCHES)
 
-build: $(BUILD_ENV)_$(BUILD_TYPE)
+build: $(OMRDIR)/$(BUILD_TYPE)
+
+docker_build: docker_$(BUILD_TYPE)
 
 ######################
 # using docker build environement
-$(DOCKER_BUILD)_$(NATIVE_BUILD): $(TARGET)
+docker_$(NATIVE_BUILD): $(TARGET_ARCH)
 	docker run -it \
 		--privileged \
 		-v /home/$(USER_IN):/home/$(USER_IN) \
 		-v $(OMRDIR):$(OMRDIR) \
-		-v /etc/passwd:/etc/passwd \
 		-e OMRDIR=$(OMRDIR) \
-		-e INIT_ARGS="make $(LOCAL_BUILD)_$(NATIVE_BUILD); cd $(OMRDIR)/$(NATIVE_BUILD)" \
-		$(OWNER)/$(TARGET)
+		-v /etc/passwd:/etc/passwd \
+		-e INIT_ARGS="$(OMRDIR)/$(NATIVE_BUILD) OMRDIR=$(OMRDIR); cd $(OMRDIR)/$(NATIVE_BUILD)" \
+		$(OWNER)/$(TARGET_ARCH)
 
-$(DOCKER_BUILD)_$(CROSS_BUILD): $(HOST)
+docker_$(CROSS_BUILD): $(HOST)
 	docker run -it \
 		--privileged \
 		-v /home/$(USER_IN):/home/$(USER_IN) \
 		-v $(OMRDIR):$(OMRDIR) \
-		-v /etc/passwd:/etc/passwd \
 		-e OMRDIR=$(OMRDIR) \
+		-v /etc/passwd:/etc/passwd \
 		$(OWNER)/$(HOST) \
-		/bin/bash -c 'cd $(THIS_DIR) && make $(LOCAL_BUILD)_$(CROSS_BUILD) TARGET=$(TARGET)'
+		/bin/bash -c 'cd $(THIS_DIR) && make $(OMRDIR)/$(CROSS_BUILD) TARGET_ARCH=$(TARGET_ARCH) OMRDIR=$(OMRDIR)'
 
 # attach to other container for cross build
-	$(MAKE) run_$(CROSS_BUILD)
-
-######################
-# using local build environement
-$(LOCAL_BUILD)_$(NATIVE_BUILD):
-	mkdir -p $(OMRDIR)/$(NATIVE_BUILD); \
-	cd $(OMRDIR)/$(NATIVE_BUILD); \
-	buildOMR.sh \
-		-C$(THIS_DIR)/compile_target.cmake \
-		$(OMRDIR)
-
-$(DEPENDENCY_BUILD):
-	mkdir -p $(OMRDIR)/$(DEPENDENCY_BUILD); \
-	cd $(OMRDIR)/$(DEPENDENCY_BUILD); \
-	buildOMR.sh \
-		$(OMRDIR)
-
-$(LOCAL_BUILD)_$(CROSS_BUILD): $(DEPENDENCY_BUILD) toolchains/gcc-$(TARGET) toolchains/set_path
-	mkdir -p $(OMRDIR)/$(CROSS_BUILD); \
-	cd $(OMRDIR)/$(CROSS_BUILD); \
-	buildOMR.sh \
-		-DCMAKE_TOOLCHAIN_FILE=$(THIS_DIR)/toolchains/$(TARGET).cmake \
-		-DOMR_TOOLS_IMPORTFILE=$(OMRDIR)/$(DEPENDENCY_BUILD)/tools/ImportTools.cmake \
-		-C$(THIS_DIR)/compile_target.cmake \
-		$(OMRDIR)
-# attach to other container for cross build
-	$(MAKE) run_$(CROSS_BUILD)
+	$(MAKE) docker_run TARGET_ARCH=$(TARGET_ARCH) OMRDIR=$(OMRDIR)
 
 ############################
 # runners 
-run_$(CROSS_BUILD): $(TARGET)
+docker_run: $(TARGET_ARCH)
 	docker run -it \
 		--privileged \
 		-v /home/$(USER_IN):/home/$(USER_IN) \
 		-v /etc/passwd:/etc/passwd \
 		-v $(OMRDIR):$(OMRDIR) \
 		-e OMRDIR=$(OMRDIR) \
-		-e INIT_ARGS="make run && cd $(OMRDIR)/$(CROSS_BUILD)" \
-		$(OWNER)/$(TARGET)
+		-e INIT_ARGS="run ; cd $(CROSS_BUILD)" \
+		$(OWNER)/$(TARGET_ARCH)
+
+######################
+# using local build environement
+$(OMRDIR)/$(NATIVE_BUILD):
+	export SOURCE=$(OMRDIR) &&\
+	export DEST=$(OMRDIR)/$(NATIVE_BUILD) &&\
+	$(THIS_DIR)/buildOMR.sh -C$(THIS_DIR)/compile_target.cmake
+
+$(OMRDIR)/$(CROSS_BUILD): toolchains/gcc-$(TARGET_ARCH)
+	export SOURCE=$(OMRDIR) &&\
+	export DEST=$(OMRDIR)/$(CROSS_BUILD) &&\
+	export TOOLCHAIN=$(THIS_DIR)/toolchains/gcc-$(TARGET_ARCH)/bin &&\
+	export TARGET_ARCH=$(TARGET_ARCH) &&\
+	$(THIS_DIR)/buildOMR.sh -C$(THIS_DIR)/compile_target.cmake
+		
+# attach to other container for cross build
+	$(MAKE) docker_run TARGET_ARCH=$(TARGET_ARCH) OMRDIR=$(OMRDIR)
 
 run:
 	@echo "This is a place holder function, exiting from makefile"

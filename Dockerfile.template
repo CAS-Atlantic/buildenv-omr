@@ -75,7 +75,7 @@ RUN rm -rf /var/lib/apt/lists/*
 ENV OMRDIR /omr
 ENV INIT_ARGS "build"
 
-RUN echo "cd \${OMRDIR}; \${INIT_ARGS}" > /init_script.sh && chmod +x /init_script.sh
+RUN echo "cd \${OMRDIR}/buildenv-omr; make \${INIT_ARGS}" > /init_script.sh && chmod +x /init_script.sh
 
 RUN groupadd THIS_GROUP || /bin/true
 RUN groupmod -g THIS_GID THIS_GROUP
