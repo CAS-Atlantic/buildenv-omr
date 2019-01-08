@@ -86,7 +86,7 @@ docker_static_bin:
 
 toolchains/gcc-$(TARGET_ARCH):
 	cd toolchains
-	./get_$(TARGET_ARCH)_toolchain.sh
+	/bin/bash get_$(TARGET_ARCH)_toolchain.sh
 
 x86_64.Dockerfile: Dockerfile.template
 	sed "s/THIS_DOCKER_ARCH/amd64/" Dockerfile.template > $@
