@@ -180,7 +180,6 @@ $(OMRDIR)/$(CROSS_BUILD): toolchains/gcc-$(TARGET_ARCH)
 	export SOURCE=$(OMRDIR) &&\
 	export DEST=$(OMRDIR)/$(CROSS_BUILD) &&\
 	export TOOLCHAIN=$(THIS_DIR)/toolchains/gcc-$(TARGET_ARCH)/bin &&\
-	export TARGET_ARCH=$(TARGET_ARCH) &&\
 	$(THIS_DIR)/buildOMR.sh -C$(THIS_DIR)/compile_target.cmake
 		
 # attach to other container for cross build
