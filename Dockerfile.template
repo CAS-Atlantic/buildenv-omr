@@ -54,8 +54,11 @@ RUN useradd \
 		-G THIS_GROUP \
 		-m \
 		-s /bin/bash \
-		-d THIS_HOMES \
 		THIS_USER
+
+RUN useradd \
+		-d THIS_HOMES \
+		THIS_USER || /bin/true
 
 USER THIS_USER
 
