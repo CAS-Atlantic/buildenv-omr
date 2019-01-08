@@ -11,6 +11,6 @@ URL=https://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/aarch6
 
 # build toolchain dependencies
 if [ ! -d gcc-aarch64 ]; then
-    wget ${URL} -qO- | tar -C toolchains -${UNTAR_CMD} \
+    wget ${URL} -qO- | tar -${UNTAR_CMD} \
     && mv ${TOOLCHAIN} gcc-aarch64
 fi
