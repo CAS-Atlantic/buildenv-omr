@@ -45,7 +45,7 @@ help:
 			GCC_V=\"gcc version number\"             (default: $(GCC_V)) \n\
 				to change the gcc version, might break so, thread carefully\n\
 \n\
-			OMRDIR=\"path/to/omr\"         (default: ../) \n\
+			OMRDIR=\"path/to/omr\"                   (default: ../) \n\
 				to change the location of the omr root directory \n\
 \n\
 			BUILD_ROOT_DIR=\"/path/to/base/build\"   (default: OMRDIR/$(BUILD_ROOT_DIR))\n\

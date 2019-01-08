@@ -17,7 +17,7 @@ Usage:
 		GCC_V="gcc version number"             (default: 4.9) 
 			to change the gcc version, might break so, thread carefully
 
-		OMRDIR="path/to/omr"         (default: ../) 
+		OMRDIR="path/to/omr"                   (default: ../) 
 			to change the location of the omr root directory 
 
 		BUILD_ROOT_DIR="/path/to/base/build"   (default: OMRDIR/build)
