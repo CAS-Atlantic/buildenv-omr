@@ -2,7 +2,6 @@
 
 set -e 
 
-cd $( dirname $(readlink -f $0) )
 ############################
 # aarch64 toolchain depends
 TAR_EXT=tar.xz

@@ -16,6 +16,9 @@ echo "
 
 ### For building localy
 
+    tar
+    xz
+    
     if ninja-build is provided we will use it 
     
 ## Makefile Usage
