@@ -10,6 +10,12 @@ OMRDIR ?= $(shell cd .. && readlink -f $${PWD} )
 HOMES_DIR ?= $(shell readlink -f ~/ )
 ESCAPED_HOMES := $(shell echo $(HOMES_DIR) | sed 's/\//\\\\\//g')
 
+MOUNT_CMD := -v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE) -v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE)
+#if omr directory is in your home folder, dont mount that volume in docker
+ifeq ($(shell echo $(OMRDIR) | grep $(HOMES_DIR)),$(OMRDIR))
+  MOUNT_CMD := -v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE)
+endif
+
 ifeq ($(TARGET_ARCH),$(HOST))
   BUILD_TYPE := native
 else
@@ -166,8 +172,7 @@ docker_build: docker_$(BUILD_TYPE)
 docker_native: $(TARGET_ARCH)
 	docker run -it \
 		--privileged \
-		-v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE) \
-		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
+		$(MOUNT_CMD) \
 		--user $(USER_IN) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
@@ -178,8 +183,7 @@ docker_native: $(TARGET_ARCH)
 docker_cross: $(HOST)
 	docker run -it \
 		--privileged \
-		-v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE) \
-		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
+		$(MOUNT_CMD) \
 		--user $(USER_IN) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
@@ -199,8 +203,7 @@ docker_cross: $(HOST)
 docker_run: $(TARGET_ARCH)
 	docker run -it \
 		--privileged \
-		-v $(HOMES_DIR):$(HOMES_DIR):$(MOUNT_TYPE) \
-		-v $(OMRDIR):$(OMRDIR):$(MOUNT_TYPE) \
+		$(MOUNT_CMD) \
 		--user $(USER_IN) \
 		-e OMRDIR=$(OMRDIR) \
 		-e BUILDER_DIR=$(THIS_DIR) \
