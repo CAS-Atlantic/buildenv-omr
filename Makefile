@@ -71,10 +71,8 @@ help:
 \n\
 			clean_docker \n\
 				delete dangling containers and images and volumes\n\
-			
-			clean_docker
-	\n\
-	"
+\n\
+"
 
 fresh:
 	rm -Rf $(OMRDIR)/$(BUILD_ROOT_DIR)
