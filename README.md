@@ -22,8 +22,14 @@
 ```
 Usage:
 	FLAGS:
+		-------------- GLOBALS -------------------------------------------- 
 		TARGET_ARCH="target architecture"      (default: x86_64)
 			allows you to change the target architecture to build to 
+
+		OMRDIR="path/to/omr"                   (default: ../) 
+			to change the location of the omr root directory 
+
+		-------------- Docker Specific ------------------------------------ 
 
 		OWNER="docker repo"                    (default: omr_builder)
 			to change the repo the docker images are built to 
@@ -34,15 +40,20 @@ Usage:
 		GCC_V="gcc version number"             (default: 4.9) 
 			to change the gcc version, might break so, thread carefully
 
-		OMRDIR="path/to/omr"                   (default: ../) 
-			to change the location of the omr root directory 
-
-		BUILD_ROOT_DIR="/path/to/base/build"   (default: OMRDIR/)
-			to change the base directory to store all the builds (cross_build, native_build) 
-
 	CMD:
 		build	
 			build the omr binaries based on the flags
+
+		all	
+			To build all the docker architecture
+
+		clean 
+			delete everything in here and do a make fresh
+
+		fresh 
+			delete built binaries in OMRDIR/build 
+
+		-------------- Docker Specific ------------------------------------ 
 
 		docker_build	
 			build the omr binaries based on the flags inside a container 
@@ -52,15 +63,6 @@ Usage:
 
 		[x86_64 arm aarch64 i386 ppc64le s390x]	
 			To build one of the diplayed Docker container for this architecture
-
-		all	
-			To build all the docker architecture
-
-		clean 
-			delete everything in here and do a make fresh
-
-		fresh 
-			delete built binaries in 
 
 		clean_docker 
 			delete dangling containers and images and volumes

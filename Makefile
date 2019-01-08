@@ -46,7 +46,6 @@ help:
 \n\
 			GCC_V=\"gcc version number\"             (default: $(GCC_V)) \n\
 				to change the gcc version, might break so, thread carefully\n\
-
 \n\
 		CMD:\n\
 			build	\n\
@@ -224,6 +223,11 @@ run:
 
 the_docs:
 	$(THIS_DIR)/build_docs.sh
+
+commit: the_docs
+	git add .
+	git commit
+
 
 
 
