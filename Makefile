@@ -157,7 +157,7 @@ docker_$(CROSS_BUILD): $(HOST)
 		-e MAKE_CMD=build \
 		-v /etc/passwd:/etc/passwd \
 		$(OWNER)/$(HOST) \
-		/init_script.sh'
+		/init_script.sh
 
 # attach to other container for cross build
 	$(MAKE) docker_run \
