@@ -30,7 +30,7 @@
 # Once the build completes, you'll be left sitting at a prompt in the container so you can
 # run more commands.
 
-FROM THIS_OWNER/base_THIS_TARGET
+FROM THIS_OWNER/THIS_TARGET_base
 
 ENV OMRDIR /omr
 ENV BUILDER_DIR /omr/builder-omr

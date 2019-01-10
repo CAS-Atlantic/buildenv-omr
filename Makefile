@@ -1,9 +1,9 @@
-OWNER ?= omr_builder
-UBUNTU_V ?= 16.04
-GCC_V ?= 4.9
-
 HOST := $(shell uname -m)
 TARGET_ARCH ?= $(HOST)
+
+OWNER ?= omr_builder_$(HOST)
+UBUNTU_V ?= 16.04
+GCC_V ?= 4.9
 
 THIS_DIR := $(shell readlink -f $${PWD} )
 OMRDIR ?= $(shell cd .. && readlink -f $${PWD} )
@@ -30,6 +30,8 @@ UID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GID_IN := $(shell ls -n $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
 USER_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f4)
 GROUP_IN := $(shell ls -l $(OMRDIR) | grep OmrConfig.cmake | cut -d ' ' -f5)
+
+YOUR_REPO := $(OWNER)_$(USER_IN)
 
 .PHONY: help clean build build_native build_cross docker_native docker_cross run docker_run toolchains/gcc-$(TARGET_ARCH) the_docs
 
@@ -102,8 +104,17 @@ clean_docker:
 	docker images
 
 docker_static_bin:
-	@echo "Registering qemu user static"
-	docker run --rm --privileged multiarch/qemu-user-static:register --reset
+	@echo "Registering qemu user static" 
+	
+	cd qemu-user-static/register ;\
+	docker build \
+		-t $(OWNER)/register \
+		.
+
+	docker run \
+		--rm \
+		--privileged \
+		$(OWNER)/register --reset
 
 	@echo "Copying the qemu arch static binaries to $@ so that we can add them in the docker file"
 	mkdir -p $@
@@ -143,7 +154,7 @@ ppc64le.BaseDockerfile: BaseDockerfile.template
 	esac
 
 	docker build \
-		-t $(OWNER)/base_$@ \
+		-t $(OWNER)/$@_base \
 		-f $@.BaseDockerfile \
 		.
 
@@ -156,7 +167,7 @@ ppc64le.BaseDockerfile: BaseDockerfile.template
 	sed -i "s/THIS_HOMES/$(ESCAPED_HOMES)/g"  $@.Dockerfile
 
 	docker build \
-		-t $(OWNER)_$(USER_IN)/$@ \
+		-t $(YOUR_REPO)/$@_environment \
 		-f $@.Dockerfile \
 		.
 
@@ -177,7 +188,7 @@ docker_native: $(TARGET_ARCH)
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
 		-e MAKE_CMD=build_native \
-		$(OWNER)_$(USER_IN)/$(TARGET_ARCH)
+		$(YOUR_REPO)/$(TARGET_ARCH)_environment
 
 docker_cross: $(HOST)
 	docker run -it \
@@ -188,7 +199,7 @@ docker_cross: $(HOST)
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
 		-e MAKE_CMD=build_cross_no_run \
-		$(OWNER)_$(USER_IN)/$(HOST) \
+		$(YOUR_REPO)/$(HOST)_environment \
 		/bin/bash /init_script.sh
 
 # attach to other container for cross build
@@ -208,7 +219,7 @@ docker_run: $(TARGET_ARCH)
 		-e BUILDER_DIR=$(THIS_DIR) \
 		-e TARGET_ARCH=$(TARGET_ARCH) \
 		-e MAKE_CMD=run \
-		$(OWNER)_$(USER_IN)/$(TARGET_ARCH)
+		$(YOUR_REPO))/$(TARGET_ARCH)_environment
 
 ######################
 # using local build environement
