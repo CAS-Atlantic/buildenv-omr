@@ -8,3 +8,5 @@
 !toolchains/get_*_toolchain.sh
 !toolchains
 !build_docs.sh
+!qemu-user-static/*
+!qemu-user-static
