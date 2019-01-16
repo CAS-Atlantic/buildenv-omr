@@ -1,6 +1,17 @@
 
 # buildenv-omr
 
+to use, clone this repo recursively (it uses submodules) 
+inside the omr root directory 
+N.B git ignores other git repos so you don't have to worry about this getting commited
+
+to clone use 
+```
+git clone --recursive
+```
+
+refer to Makefile Usage for instruction on it's use
+
 ## Dependency
 
 ### For building using docker
@@ -31,7 +42,7 @@ Usage:
 
 		-------------- Docker Specific ------------------------------------ 
 
-		OWNER="docker repo"                    (default: omr_builder)
+		OWNER="docker repo"                    (default: omr_builder_x86_64)
 			to change the repo the docker images are built to 
 
 		UBUNTU_V="ubuntu version number"       (default: 16.04)
